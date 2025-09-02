@@ -40,3 +40,40 @@ cp .env.example .env
   --whisper-model ./models/ggml-base.bin \
   --skip-transcribe false \
   --skip-translate true  # set to false if you want OpenAI translation
+
+
+SHELL := /bin/bash
+
+GME ?= ./Suchen_und_Entdecken-Meine_Welt.gme
+PRODUCT_ID ?= 219
+WHISPER_MODEL ?= ./models/ggml-base.bin
+
+.PHONY: deps extract transcribe csv translate tts yaml assemble sanity
+
+deps:
+	@scripts/check_deps.sh
+
+extract:
+	@bash scripts/extract_media.sh "$(GME)"
+
+transcribe:
+	@bash scripts/whisper_all.sh "$(WHISPER_MODEL)"
+
+csv:
+	@python3 scripts/make_transcript_csv.py
+
+translate:
+	@python3 scripts/translate_csv_openai.py
+
+tts:
+	@python3 scripts/synth_fa_audio.py
+
+yaml:
+	@python3 scripts/build_yaml.py --product-id $(PRODUCT_ID)
+
+assemble:
+	@pushd build >/dev/null && tttool assemble book_fa.yaml && mv *.gme book_fa.gme && popd >/dev/null
+	@echo "✅ GME ready: build/book_fa.gme"
+
+sanity:
+	@python3 scripts/sanity.py
